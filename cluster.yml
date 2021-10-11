@@ -1,0 +1,6 @@
+---
+- hosts: all
+  roles:
+    - role: kops
+    - role: kubectl
+    - role: cluster

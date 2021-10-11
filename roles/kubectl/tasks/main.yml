@@ -1,0 +1,14 @@
+---
+# tasks file for kubectl
+- name: get the version
+  shell: echo $(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+  register: version1
+- name: set version
+  set_fact:
+    version={{ version1.stdout }}
+- name: install kops
+  become: yes
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/{{ version }}/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: 0777

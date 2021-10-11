@@ -1,0 +1,78 @@
+---
+# tasks file for cluster
+- name: Install package dependencies.
+  package:
+    name: "{{ item }}"
+    state: present
+  become: yes
+  with_items:
+    - python3
+    - unzip
+
+- name: Download the awscli bundle.
+  get_url:
+    url: https://s3.amazonaws.com/aws-cli/awscli-bundle.zip
+    dest: /tmp/awscli-bundle.zip
+  become: yes
+
+- name: Unarchive the installer.
+  unarchive:
+    src: /tmp/awscli-bundle.zip
+    dest: /tmp
+    remote_src: yes
+    creates: /tmp/awscli-bundle
+  become: yes
+
+- name: Install awscli package.
+  shell: python3 /tmp/awscli-bundle/install -i /usr/local/aws -b /usr/bin/aws
+  args:
+    creates: /usr/bin/aws
+  become: yes
+
+- name: Configure AWS.
+  shell: aws configure set {{ item.key }} {{ item.value }} --profile {{ aws_profile }}
+  with_dict:
+    aws_access_key_id: "{{ aws_access_key }}"
+    aws_secret_access_key: "{{ aws_secret_key }}"
+    region: "{{ aws_region }}"
+    format: "{{ aws_format }}"
+  become_user: "{{ aws_system_user }}"
+  changed_when: false
+
+- name: create s3 bucket
+  shell: aws s3 mb {{ KOPS_STATE_STORE }}
+
+- name: create ssh-keys
+  openssh_keypair:
+    path: ~/.ssh/id_rsa
+
+
+- name: check cluster
+  shell: echo $(kops get cluster {{ cluster_name }}  --state={{ KOPS_STATE_STORE }})
+  register: myvar
+
+
+- name: set
+  set_fact:
+    val: "{{ myvar.stdout.split(' ')[3] }}"
+  when: myvar.stdout != ""
+  
+- name: set
+  set_fact:
+    val: ""
+  when: myvar.stdout == ""
+
+
+- name: create cluster
+  shell: kops create cluster --yes --state={{ KOPS_STATE_STORE }} --zones=us-east-1a,us-east-1b --node-count=2 --name={{ cluster_name }}
+  register: createvar
+  when: val  != "{{ cluster_name }}"
+
+- name: set
+  set_fact:
+    val: "{{ cluster_name }}"
+  when: createvar.changed
+
+- name: update cluster
+  shell : kops update cluster {{ cluster_name }} --state={{ KOPS_STATE_STORE }} --yes
+  when: val  == "{{ cluster_name }}"
