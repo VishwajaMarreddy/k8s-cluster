@@ -3,8 +3,8 @@
 ansible_python_interpreter: /usr/bin/python3
 aws_system_user: root
 aws_profile: default
-aws_access_key: "AKIAUOWRISE2RJYAHJ6Z"
-aws_secret_key: "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"
+aws_access_key: ""
+aws_secret_key: ""
 aws_region: us-east-1
 aws_format: table
 KOPS_STATE_STORE: s3://kops-storage-75777
